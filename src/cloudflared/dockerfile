@@ -1,0 +1,16 @@
+FROM debian:buster-slim
+
+#Install cloudflared
+RUN apt-get update && \
+    apt-get -y install wget && \
+    wget https://bin.equinox.io/c/VdrWdbjqyF/cloudflared-stable-linux-arm.tgz && \
+    tar -xzf cloudflared-stable-linux-arm.tgz && \
+    cp ./cloudflared /usr/local/bin && \
+    chmod +x /usr/local/bin/cloudflared && \
+    useradd -s /usr/sbin/nologin -r -M cloudflared && \
+    chown cloudflared:cloudflared /usr/local/bin/cloudflared
+
+VOLUME ["/cloudflared_config"]
+USER cloudflared
+ENTRYPOINT ["/usr/local/bin/cloudflared"]
+CMD ["--config", "/cloudflared_config/config.yml"]

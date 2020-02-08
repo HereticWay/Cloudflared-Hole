@@ -1,0 +1,54 @@
+version: "3"
+
+# More info at https://github.com/pi-hole/docker-pi-hole/ and https://docs.pi-hole.net/
+services:
+  cloudflared:
+    container_name: cloudflared
+    build: src/cloudflared/
+    ports:
+      - "5053:5053" #Custom dns port
+    volumes:
+      - "/docker/pihole/cloudflared_config/:/cloudflared_config/"
+    networks:
+      pihole_net:
+        ipv4_address: 10.0.0.2
+    restart: unless-stopped
+
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    ports:
+      - "53:53/tcp" #DNS
+      - "53:53/udp" #DNS
+      #- "67:67/udp" #DHCP
+      - "80:80/tcp" #HTTP
+      - "443:443/tcp" #HTTPS
+    environment:
+      TZ: 'Europe/Budapest'
+      WEBPASSWORD: ''
+      DNS1: 10.0.0.2#5053 #DNS provided by our "cloudflared" service
+      DNS2: "no"
+      ServerIP: 192.168.1.254 #Raspberry PI's local IP address
+    # Volumes store your data between container upgrades
+    volumes:
+       - '/docker/pihole/etc-pihole/:/etc/pihole/'
+       - '/docker/pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/'
+    dns:
+      - 127.0.0.1
+      - 1.1.1.1
+      - 1.0.0.1
+    # Recommended but not required (DHCP needs NET_ADMIN)
+    #   https://github.com/pi-hole/docker-pi-hole#note-on-capabilities
+    #cap_add:
+    #  - NET_ADMIN
+    networks:
+      pihole_net:
+        ipv4_address: 10.0.0.3
+    restart: unless-stopped
+
+networks:
+  pihole_net:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 10.0.0.0/29
